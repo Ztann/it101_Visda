@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Brgy. Sto. Tomas — Resident Registry</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+    :root {
+      --primary-dark: #0F2B48;
+      --primary-medium: #1E40AF;
+      --accent-blue: #3B82F6;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-300: #D1D5DB;
+      --gray-600: #4B5563;
+      --gray-700: #374151;
+      --radius: 8px;
+      --overlay: rgba(0,0,0,0.5);
+    }
+    body { background: #F8FAFC; color: #1F2937; }
+
+    .app-container { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 240px; background: var(--primary-dark); color: white;
+      padding: 1.5rem 0; display: flex; flex-direction: column; gap: 2rem;
+    }
+    .sidebar-header { padding: 0 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 1rem; }
+    .sidebar-header h2 { font-size: 1rem; font-weight: 600; }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 0.25rem; padding: 0 0.75rem; }
+    .nav-item {
+      color: rgba(255,255,255,0.7); text-decoration: none; padding: 0.75rem 1rem; border-radius: var(--radius);
+      transition: all 0.2s;
+    }
+    .nav-item:hover, .nav-item.active { background: var(--primary-medium); color: white; }
+    .main-content { flex: 1; padding: 2rem; overflow-y: auto; }
+
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    .page-header { margin-bottom: 1.5rem; }
+    .page-header h1 { font-size: 1.5rem; color: var(--primary-dark); margin-bottom: 0.25rem; }
+    .page-header p { color: var(--gray-600); font-size: 0.9rem; }
+
+    .btn {
+      padding: 0.6rem 1.2rem; border: none; border-radius: var(--radius); font-weight: 500; cursor: pointer;
+      transition: all 0.2s; font-size: 0.9rem;
+    }
+    .btn:active { transform: scale(0.97); }
+    .primary-btn { background: var(--accent-blue); color: white; }
+    .primary-btn:hover { background: #2563EB; }
+    .secondary-btn { background: var(--gray-200); color: var(--gray-700); }
+    .secondary-btn:hover { background: #D1D5DB; }
+    .danger-btn { background: #FEE2E2; color: var(--danger); }
+    .danger-btn:hover { background: #FECACA; }
+    .success-btn { background: #D1FAE5; color: #065F46; }
+    .success-btn:hover { background: #A7F3D0; }
+
+    .filters-bar {
+      display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem;
+      background: white; padding: 1rem; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .search-input { flex: 1; min-width: 200px; padding: 0.6rem 0.9rem; border: 1px solid var(--gray-200); border-radius: var(--radius); }
+    .clear-btn { background: transparent; border: none; color: var(--accent-blue); cursor: pointer; font-weight: 500; }
+
+    .table-container { background: white; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; margin-bottom: 1rem; }
+    .residents-table { width: 100%; border-collapse: collapse; }
+    .residents-table th, .residents-table td { padding: 0.9rem 1rem; text-align: left; border-bottom: 1px solid var(--gray-100); font-size: 0.9rem; }
+    .residents-table th { background: #EFF6FF; color: var(--primary-dark); font-weight: 600; }
+    .residents-table tr:hover { background: #FAFBFC; }
+    .status-badge {
+      display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 500;
+    }
+    .status-badge.active { background: #D1FAE5; color: #065F46; }
+    .status-badge.transient { background: #FEF3C7; color: #92400E; }
+    .icon-btn { background: none; border: none; cursor: pointer; margin: 0 0.15rem; font-size: 1rem; }
+    .view-btn { color: var(--accent-blue); }
+    .edit-btn { color: var(--warning); }
+    .del-btn { color: var(--danger); }
+
+    .pagination { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--gray-600); }
+    .page-btn { border: 1px solid var(--gray-200); background: white; padding: 0.4rem 0.7rem; border-radius: 4px; cursor: pointer; margin-left: 0.3rem; }
+    .page-btn.active { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+
+    .back-link { color: var(--accent-blue); text-decoration: none; display: inline-block; margin-bottom: 1rem; }
+    .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .profile-card { background: white; padding: 1.5rem; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .profile-card h3 { color: var(--primary-dark); margin-bottom: 1rem; font-size: 1rem; border-bottom: 1px solid var(--gray-100); padding-bottom: 0.5rem; }
+    .info-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #F9FAFB; font-size: 0.9rem; }
+    .info-row span:first-child { color: var(--gray-600); }
+    .badge { padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; margin-right: 0.5rem; }
+    .resident-badge { background: #D1FAE5; color: #065F46; }
+    .voter-badge { background: #DBEAFE; color: #1E40AF; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+    .stat-card { background: white; padding: 1.5rem; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid var(--accent-blue); }
+    .stat-number { font-size: 1.8rem; font-weight: 700; color: var(--primary-dark); margin-top: 0.3rem; }
+
+    .settings-card { background: white; padding: 1.5rem; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1rem; }
+    .settings-card h3 { color: var(--primary-dark); margin-bottom: 1rem; font-size: 1rem; border-bottom: 1px solid var(--gray-100); padding-bottom: 0.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-weight: 500; color: var(--gray-700); margin-bottom: 0.4rem; font-size: 0.9rem; }
+    .form-input {
+      width: 100%; padding: 0.7rem 0.9rem; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 0.9rem;
+    }
+    .form-input:focus { outline: none; border-color: var(--accent-blue); }
+    select.form-input { height: 42px; }
+    .btn-group { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+    .message { margin-top: 0.8rem; padding: 0.6rem; border-radius: var(--radius); display: none; font-size: 0.85rem; }
+    .message.success { background: #D1FAE5; color: #065F46; display: block; }
+    .message.error { background: #FEE2E2; color: #991B1B; display: block; }
+
+    /* MODAL FORM */
+    .modal-overlay {
+      position: fixed; inset: 0; background: var(--overlay); display: none; align-items: center; justify-content: center; z-index: 100; padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: white; border-radius: var(--radius); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    .modal-header {
+      padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-header h2 { font-size: 1.1rem; color: var(--primary-dark); }
+    .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--gray-400); }
+    .modal-body { padding: 1.5rem; }
+    .step-indicator { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .step-dot {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--gray-200); color: var(--gray-600); display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.85rem; transition: all 0.2s;
+    }
+    .step-dot.active { background: var(--accent-blue); color: white; }
+    .step-dot.completed { background: var(--success); color: white; }
+    .step-content { display: none; }
+    .step-content.active { display: block; animation: fadeIn 0.2s ease; }
+    .step-hint { font-size: 0.8rem; color: var(--gray-400); margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>BRGY. STO. TOMAS</h2>
+        <p style="opacity:0.7; font-size:0.8rem;">Resident Registry</p>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item" data-page="dashboard">📊 Dashboard</a>
+        <a href="#" class="nav-item" data-page="residents">👥 Residents</a>
+        <a href="#" class="nav-item active" data-page="settings">⚙️ Settings</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <!-- DASHBOARD -->
+      <section id="dashboard-page" class="page">
+        <div class="page-header">
+          <h1>Dashboard Overview</h1>
+          <p>Quick summary of resident records</p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><h3>Total Residents</h3><p class="stat-number" id="stat-total">0</p></div>
+          <div class="stat-card"><h3>Active</h3><p class="stat-number" id="stat-active">0</p></div>
+          <div class="stat-card"><h3>Household Heads</h3><p class="stat-number" id="stat-heads">0</p></div>
+          <div class="stat-card"><h3>Male / Female</h3><p class="stat-number" id="stat-gender">0 / 0</p></div>
+        </div>
+      </section>
+
+      <!-- RESIDENTS -->
+      <section id="residents-page" class="page">
+        <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+          <div>
+            <h1>Resident Registry</h1>
+            <p>Manage all resident records</p>
+          </div>
+          <button class="btn primary-btn" id="add-resident-btn">+ Add New Resident</button>
+        </div>
+        <div class="filters-bar">
+          <input type="text" id="search-input" placeholder="Search by name, occupation, purok..." class="search-input" />
+          <button class="clear-btn" id="clear-filters">Clear</button>
+        </div>
+        <div class="table-container">
+          <table class="residents-table">
+            <thead>
+              <tr>
+                <th>Full Name</th><th>Age</th><th>Sex</th><th>Purok</th><th>Occupation</th><th>HH Head?</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="residents-table-body"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="pagination-count">Showing 0–0 of 0 residents</span>
+          <div><button class="page-btn active">1</button></div>
+        </div>
+      </section>
+
+      <!-- PROFILE -->
+      <section id="profile-page" class="page">
+        <a href="#" class="back-link" id="back-to-registry">← Back to Registry</a>
+        <div class="page-header">
+          <h1 id="profile-name">Maria Divina Gracia</h1>
+          <span class="badge resident-badge">Resident</span>
+          <span class="badge voter-badge">Voted</span>
+          <div class="btn-group" style="margin-top:0.5rem;">
+            <button class="btn secondary-btn" id="print-btn">🖨 Print Certificate</button>
+            <button class="btn primary-btn" id="edit-profile-btn">✏️ Edit Profile</button>
+            <button class="btn danger-btn" id="delete-profile-btn">🗑 Delete Record</button>
+          </div>
+        </div>
+        <div class="profile-grid">
+          <div class="profile-card">
+            <h3>Personal Info</h3>
+            <div class="info-row"><span>Name:</span><span id="p-name">Maria Divina Gracia</span></div>
+            <div class="info-row"><span>Age:</span><span id="p-age">39</span></div>
+            <div class="info-row"><span>Civil Status:</span><span>Married</span></div>
+            <div class="info-row"><span>Citizenship:</span><span>Filipino</span></div>
+          </div>
+          <div class="profile-card">
+            <h3>Contact</h3>
+            <div class="info-row"><span>Mobile:</span><span>+63 917 123 4567</span></div>
+            <div class="info-row"><span>Address:</span><span>Purok 4, Sto. Tomas</span></div>
+          </div>
+          <div class="profile-card">
+            <h3>Work</h3>
+            <div class="info-row"><span>Occupation:</span><span>Public School Teacher</span></div>
+            <div class="info-row"><span>Employer:</span><span>DepEd</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="settings-page" class="page active">
+        <div class="page-header">
+          <h1>Settings</h1>
+          <p>System preferences & data management</p>
+        </div>
+
+        <div class="settings-card">
+          <h3>🏛️ Barangay Information</h3>
+          <div class="form-group">
+            <label>Barangay Name</label>
+            <input type="text" class="form-input" id="set-brgy-name" value="Barangay Sto. Tomas" />
+          </div>
+          <div class="form-group">
+            <label>City / Municipality</label>
+            <input type="text" class="form-input" id="set-city" value="Pasig City" />
+          </div>
+          <div class="form-group">
+            <label>Contact Number</label>
+            <input type="text" class="form-input" id="set-contact" value="+63 49 123 4567" />
+          </div>
+          <button class="btn primary-btn" id="save-brgy-btn">Save Info</button>
+          <div class="message" id="brgy-msg"></div>
+        </div>
+
+        <div class="settings-card">
+          <h3>👤 Account</h3>
+          <div class="form-group">
+            <label>Admin Name</label>
+            <input type="text" class="form-input" id="set-admin-name" value="Barangay Secretary" />
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" class="form-input" id="set-username" value="brgy_admin" />
+          </div>
+          <div class="btn-group">
+            <button class="btn primary-btn" id="save-account-btn">Update Account</button>
+            <button class="btn secondary-btn" id="change-pass-btn">Change Password</button>
+          </div>
+          <div class="message" id="account-msg"></div>
+        </div>
+
+        <div class="settings-card">
+          <h3>💾 Data Management</h3>
+          <p style="font-size:0.85rem; color:#6B7280; margin-bottom:1rem;">Export and backup your resident records</p>
+          <div class="btn-group">
+            <button class="btn success-btn" id="export-json-btn">📥 Export JSON</button>
+          </div>
+          <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid #E5E7EB;">
+            <p style="font-size:0.85rem; color:#6B7280; margin-bottom:0.8rem;">⚠️ Danger Zone — cannot be undone</p>
+            <button class="btn danger-btn" id="clear-all-btn">🗑️ Clear All Data</button>
+          </div>
+          <div class="message" id="data-msg"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ADD RESIDENT FORM MODAL -->
+  <div id="add-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>Add New Resident</h2>
+        <button class="modal-close" id="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Step Indicators -->
+        <div class="step-indicator">
+          <div class="step-dot active" data-step="1">1</div>
+          <div class="step-dot" data-step="2">2</div>
+          <div class="step-dot" data-step="3">3</div>
+          <div class="step-dot" data-step="4">4</div>
+        </div>
+
+        <!-- STEP 1: Personal Info -->
+        <div class="step-content active" data-step="1">
+          <p class="step-hint">Step 1 of 4 — Enter basic details</p>
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" class="form-input" id="add-name" placeholder="Last Name, First Name Middle" />
+          </div>
+          <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-group">
+              <label>Age *</label>
+              <input type="number" class="form-input" id="add-age" placeholder="e.g. 32" />
+            </div>
+            <div class="form-group">
+              <label>Sex *</label>
+              <select class="form-input" id="add-sex">
+                <option value="">Select...</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+              </select>
+            </div>
+          </div>
+          <div class="btn-group" style="justify-content:flex-end;">
+            <button class="btn primary-btn next-btn" data-next="2">Next →</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: Location -->
+        <div class="step-content" data-step="2">
+          <p class="step-hint">Step 2 of 4 — Address & zone</p>
+          <div class="form-group">
+            <label>Purok / Zone *</label>
+            <select class="form-input" id="add-purok">
+              <option value="">Select Purok...</option>
+              <option value="Purok 1">Purok 1</option>
+              <option value="Purok 2">Purok 2</option>
+              <option value="Purok 3">Purok 3</option>
+              <option value="Purok 4">Purok 4</option>
+              <option value="Purok 5">Purok 5</option>
+              <option value="Purok 6">Purok 6</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Occupation</label>
+            <input type="text" class="form-input" id="add-occ" placeholder="e.g. Farmer, Teacher, Student" />
+          </div>
+          <div class="btn-group">
+            <button class="btn secondary-btn prev-btn" data-prev="1">← Back</button>
+            <button class="btn primary-btn next-btn" data-next="3">Next →</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Household -->
+        <div class="step-content" data-step="3">
+          <p class="step-hint">Step 3 of 4 — Household details</p>
+          <div class="form-group">
+            <label>Household Head? *</label>
+            <select class="form-input" id="add-head">
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Residency Status</label>
+            <select class="form-input" id="add-status">
+              <option value="Active" selected>Active Resident</option>
+              <option value="Transient">Transient / Non-Resident</option>
+            </select>
+          </div>
+          <div class="btn-group">
+            <button class="btn secondary-btn prev-btn" data-prev="2">← Back</button>
+            <button class="btn primary-btn next-btn" data-next="4">Next →</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: Confirm & Save -->
+        <div class="step-content" data-step="4">
+          <p class="step-hint">Step 4 of 4 — Review & save</p>
+          <div id="review-summary" style="background:var(--gray-100); padding:1rem; border-radius:var(--radius); margin-bottom:1rem;">
+            <p style="color:var(--gray-600); font-size:0.9rem;">Filling summary...</p>
+          </div>
+          <div class="btn-group">
+            <button class="btn secondary-btn prev-btn" data-prev="3">← Back</button>
+            <button class="btn success-btn" id="confirm-save">✅ Save Resident</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== DATA STORE ==========
+    let residentsData = [
+      { id: "RES-001", fullName: "Bantigue S. Aquino IV", age: 41, sex: "M", purok: "Purok 1", occupation: "Software Engineer", isHead: "Yes", residencyStatus: "Active" },
+      { id: "RES-002", fullName: "Cresencio C. Colejanejo", age: 72, sex: "F", purok: "Purok 2", occupation: "Retired Teacher", isHead: "Yes", residencyStatus: "Active" },
+      { id: "RES-003", fullName: "Ferdinand R. Mariano III", age: 34, sex: "M", purok: "Purok 5", occupation: "LGU Admin Clerk", isHead: "No", residencyStatus: "Active" },
+      { id: "RES-004", fullName: "Gloria M. Macapagal", age: 58, sex: "F", purok: "Purok 4", occupation: "Business Owner", isHead: "No", residencyStatus: "Active" },
+      { id: "RES-005", fullName: "Manuel L. Quezon Jr.", age: 29, sex: "M", purok: "Purok 3", occupation: "Student / Call Center", isHead: "No", residencyStatus: "Transient" },
+      { id: "RES-006", fullName: "Rodrigo R. Duterte", age: 79, sex: "M", purok: "Purok 1", occupation: "Retired", isHead: "No", residencyStatus: "Active" },
+      { id: "RES-007", fullName: "Leonor G. Robredo", age: 59, sex: "F", purok: "Purok 2", occupation: "NGO Officer", isHead: "Yes", residencyStatus: "Active" },
+      { id: "RES-008", fullName: "Andres B. Bonifacio", age: 31, sex: "M", purok: "Purok 6", occupation: "Delivery Rider", isHead: "Yes", residencyStatus: "Active" },
+      { id: "RES-009", fullName: "Jose P. Rizal", age: 61, sex: "M", purok: "Purok 3", occupation: "Medical Doctor", isHead: "No", residencyStatus: "Active" },
+      { id: "RES-010", fullName: "Maria Clara S. Santos", age: 24, sex: "F", purok: "Purok 1", occupation: "Virtual Assistant", isHead: "No", residencyStatus: "Transient" }
+    ];
+
+    // ========== UTILITIES ==========
+    function showMessage(elementId, text, isSuccess = true) {
+      const el = document.getElementById(elementId);
+      el.className = `message ${isSuccess ? 'success' : 'error'}`;
+      el.textContent = text;
+      setTimeout(() => { el.className = 'message'; el.style.display = 'none'; }, 3000);
+    }
+
+    function clearAddForm() {
+      document.getElementById('add-name').value = '';
+      document.getElementById('add-age').value = '';
+      document.getElementById('add-sex').value = '';
+      document.getElementById('add-purok').value = '';
+      document.getElementById('add-occ').value = '';
+      document.getElementById('add-head').value = '';
+      document.getElementById('add-status').value = 'Active';
+      goToStep(1);
+    }
+
+    function goToStep(n) {
+      document.querySelectorAll('.step-dot').forEach(dot => {
+        const s = parseInt(dot.dataset.step);
+        dot.classList.remove('active', 'completed');
+        if (s < n) dot.classList.add('completed');
+        if (s === n) dot.classList.add('active');
+      });
+      document.querySelectorAll('.step-content').forEach(c => {
+        c.classList.remove('active');
+        if (parseInt(c.dataset.step) === n) c.classList.add('active');
+      });
+      if (n === 4) updateReviewSummary();
+    }
+
+    function updateReviewSummary() {
+      const name = document.getElementById('add-name').value || '—';
+      const age = document.getElementById('add-age').value || '—';
+      const sexEl = document.getElementById('add-sex');
+      const sex = sexEl.value ? sexEl.options[sexEl.selectedIndex].text : '—';
+      const purok = document.getElementById('add-purok').value || '—';
+      const occ = document.getElementById('add-occ').value || 'Unemployed';
+      const headEl = document.getElementById('add-head');
+      const head = headEl.value ? headEl.options[headEl.selectedIndex].text : '—';
+      const statusEl = document.getElementById('add-status');
+      const status = statusEl.value ? statusEl.options[statusEl.selectedIndex].text : '—';
+
+      document.getElementById('review-summary').innerHTML = `
+        <p style="margin-bottom:0.5rem;"><strong>Name:</strong> ${name}</p>
+        <p style="margin-bottom:0.5rem;"><strong>Age:</strong> ${age}</p>
+        <p style="margin-bottom:0.5rem;"><strong>Sex:</strong> ${sex}</p>
+        <p style="margin-bottom:0.5rem;"><strong>Purok:</strong> ${purok}</p>
+        <p style="margin-bottom:0.5rem;"><strong>Occupation:</strong> ${occ}</p>
+        <p style="margin-bottom:0.5rem;"><strong>Household Head:</strong> ${head}</p>
+        <p><strong>Status:</strong> ${status}</p>
+      `;
+    }
+
+    // ========== TABLE & DASHBOARD ==========
+    const tableBody = document.getElementById("residents-table-body");
+    function renderTable(data) {
+      tableBody.innerHTML = "";
+      data.forEach(res => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${res.fullName}</td>
+          <td>${res.age}</td>
+          <td>${res.sex}</td>
+          <td>${res.purok}</td>
+          <td>${res.occupation}</td>
+          <td>${res.isHead}</td>
+          <td><span class="status-badge ${res.residencyStatus.toLowerCase()}">${res.residencyStatus}</span></td>
+          <td>
+            <button class="icon-btn view-btn" data-id="${res.id}" title="View">👁</button>
+            <button class="icon-btn edit-btn" data-id="${res.id}" title="Edit">✏️</button>
+            <button class="icon-btn del-btn" data-id="${res.id}" title="Delete">🗑</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+      document.getElementById("pagination-count").textContent = 
+        `Showing 1–${data.length} of ${residentsData.length} residents`;
+    }
+    renderTable(residentsData);
+
+    function updateStats() {
+      document.getElementById("stat-total").textContent = residentsData.length;
+      document.getElementById("stat-active").textContent = residentsData.filter(r => r.residencyStatus === "Active").length;
+      document.getElementById("stat-heads").textContent = residentsData.filter(r => r.isHead === "Yes").length;
+      const m = residentsData.filter(r => r.sex === "M").length;
+      const f = residentsData.filter(r => r.sex === "F").length;
+      document.getElementById("stat-gender").textContent = `${m} / ${f}`;
+    }
+    updateStats();
+
+    // ========== NAVIGATION ==========
+    const navItems = document.querySelectorAll(".nav-item");
+    const pages = document.querySelectorAll(".page");
+    function switchPage(name) {
+      navItems.forEach(n => n.classList.remove("active"));
+      document.querySelector(`[data-page="${name}"]`).classList.add("active");
+      pages.forEach(p => p.classList.remove("active"));
+      document.getElementById(`${name}-page`).classList.add("active");
+    }
+    navItems.forEach(item => {
+      item.addEventListener("click", e => {
+        e.preventDefault();
+        switchPage(item.getAttribute("data-page"));
+      });
+    });
+
+    // ========== SEARCH ==========
+    document.getElementById("search-input").addEventListener("input", e => {
+      const term = e.target.value.toLowerCase().trim();
+      if (!term) return renderTable(residentsData);
+      renderTable(residentsData.filter(r =>
+        r.fullName.toLowerCase().includes(term) ||
+        r.occupation.toLowerCase().includes(term) ||
+        r.purok.toLowerCase().includes(term)
+      ));
+    });
+    document.getElementById("clear-filters").addEventListener("click", () => {
+      document.getElementById("search-input").value = "";
+      renderTable(residentsData);
+    });
+
+    // ========== RESIDENT ACTIONS ==========
+    document.addEventListener("click", e => {
+      const id = e.target.getAttribute("data-id");
+      if (!id) return;
+      if (e.target.classList.contains("view-btn")) {
+        const res = residentsData.find(r => r.id === id);
+        if (res) {
+          document.getElementById("profile-name").textContent = res.fullName;
+          document.getElementById("p-name").textContent = res.fullName;
+          document.getElementById("p-age").textContent = res.age + " years old";
+        }
+        switchPage("profile");
+      }
+      if (e.target.classList.contains("edit-btn")) {
+        const res = residentsData.find(r => r.id === id);
+        if (res) {
+          const newName = prompt("Edit Full Name:", res.fullName);
+          if (newName && newName.trim()) {
+            res.fullName = newName.trim();
+            renderTable(residentsData);
+            updateStats();
+            alert("Record updated!");
+          }
+        }
+      }
+      if (e.target.classList.contains("del-btn")) {
+        if (confirm("Delete this record? This cannot be undone.")) {
+          residentsData = residentsData.filter(r => r.id !== id);
+          renderTable(residentsData);
+          updateStats();
+          alert("Record deleted.");
+        }
+      }
+    });
+
+    // ========== ADD RESIDENT MODAL ==========
+    const addModal = document.getElementById('add-modal');
+    document.getElementById('add-resident-btn').addEventListener('click', () => {
+      clearAddForm();
+      addModal.classList.add('open');
+    });
+    document.getElementById('close-modal').addEventListener('click', () => {
+      addModal.classList.remove('open');
+    });
+    addModal.addEventListener('click', e => {
+      if (e.target === addModal) addModal.classList.remove('open');
+    });
+
+    // Step navigation
+    document.querySelectorAll('.next-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const next = parseInt(btn.dataset.next);
+        // Simple validation
+        if (next === 2 && !document.getElementById('add-name').value.trim()) {
+          alert('Please enter Full Name'); return;
+        }
+        if (next === 2 && !document.getElementById('add-age').value) {
+          alert('Please enter Age'); return;
+        }
+        if (next === 2 && !document.getElementById('add-sex').value) {
+          alert('Please select Sex'); return;
+        }
+        if (next === 3 && !document.getElementById('add-purok').value) {
+          alert('Please select Purok / Zone'); return;
+        }
+        if (next === 4 && !document.getElementById('add-head').value) {
+          alert('Please select Household Head status'); return;
+        }
+        goToStep(next);
+      });
+    });
+    document.querySelectorAll('.prev-btn').forEach(btn => {
+      btn.addEventListener('click', () => goToStep(parseInt(btn.dataset.prev)));
+    });
+
+    // Final Save
+    document.getElementById('confirm-save').addEventListener('click', () => {
+      const newResident = {
+        id: "RES-" + String(residentsData.length + 1).padStart(3, "0"),
+        fullName: document.getElementById('add-name').value.trim(),
+        age: parseInt(document.getElementById('add-age').value) || 0,
+        sex: document.getElementById('add-sex').value,
+        purok: document.getElementById('add-purok').value,
+        occupation: document.getElementById('add-occ').value.trim() || 'Unemployed',
+        isHead: document.getElementById('add-head').value,
+        residencyStatus: document.getElementById('add-status').value
+      };
+      residentsData.push(newResident);
+      renderTable(residentsData);
+      updateStats();
+      addModal.classList.remove('open');
+      alert('✅ Resident added successfully!');
+    });
+
+    // ========== PROFILE BUTTONS ==========
+    document.getElementById("back-to-registry").addEventListener("click", e => {
+      e.preventDefault();
+      switchPage("residents");
+    });
+    document.getElementById("print-btn").addEventListener("click", () => window.print());
+    document.getElementById("edit-profile-btn").addEventListener("click", () => alert("Edit mode opened."));
+    document.getElementById("delete-profile-btn").addEventListener("click", () => {
+      if (confirm("Delete this resident's record?")) {
+        residentsData = residentsData.filter(r => r.fullName !== document.getElementById("profile-name").textContent);
+        renderTable(residentsData);
+        updateStats();
+        switchPage("residents");
+        alert("Record deleted.");
+      }
+    });
+
+    // ========== SETTINGS ==========
+    document.getElementById("save-brgy-btn").addEventListener("click", () => {
+      const name = document.getElementById("set-brgy-name").value;
+      if (!name) return showMessage("brgy-msg", "Please enter barangay name", false);
+      showMessage("brgy-msg", "✅ Barangay info saved!");
+    });
+    document.getElementById("save-account-btn").addEventListener("click", () => {
+      const admin = document.getElementById("set-admin-name").value;
+      if (!admin) return showMessage("account-msg", "Please enter admin name", false);
+      showMessage("account-msg", "✅ Account updated!");
+    });
+    document.getElementById("change-pass-btn").addEventListener("click", () => {
+      const newP = prompt("Enter new password:");
+      if (newP && newP.length >= 4) alert("✅ Password changed!");
+      else alert("❌ Minimum 4 characters.");
+    });
+    document.getElementById("export-json-btn").addEventListener("click", () => {
+      const data = JSON.stringify(residentsData, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "residents_data.json"; a.click();
+      URL.revokeObjectURL(url);
+      showMessage("data-msg", "✅ JSON exported!");
+    });
+    document.getElementById("clear-all-btn").addEventListener("click", () => {
+      if (confirm("⚠️ Delete ALL records?")) {
+        if (confirm("Are you absolutely sure?")) {
+          residentsData = [];
+          renderTable(residentsData);
+          updateStats();
+          showMessage("data-msg", "⚠️ All data cleared.", true);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
